@@ -1,0 +1,39 @@
+buildscript {
+    ext.kotlin_version = '1.0.6'
+    ext {
+        springBootVersion = '1.4.3.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-allopen:$kotlin_version"
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'kotlin'
+apply plugin: 'org.springframework.boot'
+apply plugin: "kotlin-spring"
+
+jar {
+    baseName = 'java-provider'
+    version = '0.0.1-SNAPSHOT'
+}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    compile('org.springframework.boot:spring-boot-starter-web')
+    compile("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version")
+    compile('com.fasterxml.jackson.module:jackson-module-kotlin')
+    testCompile('au.com.dius:pact-jvm-provider-junit_2.11:3.3.3')
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+}

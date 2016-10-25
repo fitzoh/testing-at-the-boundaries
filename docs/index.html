@@ -1,0 +1,500 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Testing At The Boundaries</title>
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/black.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+        document.getElementsByTagName('head')[0].appendChild(link);
+    </script>
+</head>
+<body>
+<div class="reveal">
+    <div class="slides">
+        <section>
+            <h1>Testing at the boundaries</h1>
+            <h4>Using Consumer Driven Contracts to keep your microservices in sync</h4>
+            <p>https://github.com/Fitzoh/testing-at-the-boundaries</p>
+            <p>Andrew Fitzgerald (@Fitzoh)</p>
+            <small>Fuse by Cardinal Health</small>
+            <aside class="notes">
+                <li>talk title</li>
+                <li>introduce self</li>
+                <p>I'm an engineer at fuse, which is cardinal health's commercial software and innovation center</p>
+                <p>This session is about Consumer Driven Contracts: what they are, and why you might want to use them in your microservice system</p>
+                <li>slides</li>
+                <li>show of hands: baseline, familiar w/ CDC before abstract, has used or is using CDC</li>
+                <p></p>
+            </aside>
+        </section>
+        <section>
+            <h2>Agenda</h2>
+            <h4 class="fragment fade-up">how I got here</h4>
+            <h4 class="fragment fade-up">quick CDC intro</h4>
+            <h4 class="fragment fade-up">show, don't tell</h4>
+            <h4 class="fragment fade-up">ok, tell</h4>
+            <h4 class="fragment fade-up">do it yourself</h4>
+            <aside class="notes">
+                <p>here's an outline of what what I'm going to be covering in this session</p>
+                <b>how I got here</b>
+                <p>I want to start out by giving you a little bit of background and context on my organization's experiences over the past year or so of gradually migrating a traditional web application to a microservice architecture</p>
+                <p>I'm gonna talk a little bit about some of the benefits and drawbacks we ran into, specifically problems around testing service to service interactions, and how it lead us to CDC</p>
+                <b>quick CDC intro</b>
+                <p>quickly go over some definitions and concepts</p>
+                <b>show, don't tell</b>
+                <p>jump into demo/live coding to illustrate things through code</p>
+                <b>ok, tell</b>
+                <p>a few slides to clarify some stuff from the demo</p>
+                <b>do it yourself</b>
+                <p>options for using CDC in your application</p>
+            </aside>
+        </section>
+        <section>
+            <h2>microservices: lessons learned</h2>
+            <table class="fragment fade-up">
+                <tr>
+                    <th align="center">:D </th>
+                    <th align="center"> D:</th>
+                </tr>
+                <tr >
+                    <td align="center" class="fragment fade-up">faster deployments</td>
+                    <td align="center" class="fragment fade-up">automation required</td></tr>
+                <tr>
+                    <td align="center" class="fragment fade-up">fits in (human) memory</td>
+                    <td align="center" class="fragment fade-up">tracing requests</td></tr>
+                <tr>
+                    <td align="center" class="fragment fade-up">code ownership</td>
+                    <td align="center" class="fragment fade-up">code duplication</td></tr>
+                <tr class="fragment fade-up">
+                    <td align="center">testing</td>
+                    <td align="center">testing</td>
+                </tr>
+            </table>
+
+            <aside class="notes">
+
+                <p>I joined my current team a little over a year ago, and my first project was to add SSO support to our identity management service, and extract it into a standalone microservice that could be independently deployed</p>
+                <p>At the time we were working with a traditional web application; single repo, single build artifact, but internally divided into multiple modules that gave us a pretty good idea of where to start drawing our boundaries</p>
+                <p>We worked our way through that first service and established some patterns on how to split other services off and how to handle spinning up greenfield services</p>
+                <b>:D | D:</b>
+                <p>As you can see, we have a happy face, and a not happy face.  I'm going to go through a few of the good things and not so good things we've run into throughout the process, and I promise it will sort of cleanly segue into Consumer Driven Contracts</p>
+
+                <b>faster deployments</b>
+                <p>With smaller services the time to actually deploy and start an individual service is shorter, but the real value is the ability to reduce the iteration time from idea to production</p>
+                <p>If you limit your changes to a single service, it becomes so much easier to safely and confidently deploy an update</p>
+                <p>Of course, this is something that's still possible to do within a traditional application, but the physical boundaries in a microservices architecture make it easier to do the right thing</p>
+
+                <b>automation required</b>
+                <p>Unfortunately, is that a certain level of automation is required to get those quicker deployments</p>
+                <p>Manual builds and deployments might work for you when you only have a single artifact to deploy once a quarter, but that becomes a lot less tractable as the number of services and frequency of deployments increases</p>
+                <p>You need to be able to automate your builds, and you need to have some level of automation in your deployments, and you should be able to quickly spin up all the required infrastructure to roll out a new service</p>
+
+                <hr/>
+
+                <b>fits in (human) memory</b>
+                <p>When you're working on a smaller, more focused service, it's a lot easier to maintain a full mental model of what the service actually does and how it works</p>
+                <p>Likewise, when you're acting as the consumer of a microservice that has a well defined interface, you don't need to worry as much about what it's doing internally</p>
+                <p>Treating it as a black box can do a lot to reduce your mental overhead</p>
+
+                <b>tracing requests</b>
+                <p>Tracing a request from end to end obviously becomes more difficult when you go from 1 process to more than one process</p>
+                <p>You now have to worry about crossing REST and messaging boundaries... you can't just figure out what's going wrong by tailing and grepping your logs</p>
+                <p>You need some sort of log aggregator, be it elk or splunk or something else and I would strongly recommend using something like zipkin to generate correlation ID's and insert them into your application logs</p>
+
+                <hr/>
+
+                <b>code ownership</b>
+                <p>When everyone is responsible, noone is responsible</p>
+                <p>If you're the champion of a service, or your team has ownership of a service, you're a lot more likely to keep it in good shape</p>
+                <p>And because you're well acquainted with this smaller code base, it's going to be a lot easier for you to effectively add features and maintain it</p>
+
+                <b>code duplication</b>
+                <p>sort of related to this, is that shared domain objects and common libraries can cause a lot of friction as you start to divide your monolith</p>
+                <p>This is mainly because you lose the guarantee that everything is using the same version of that shared code...</p>
+                <p>It can be really difficult to make sure that version 5 of your domain object is still backwards compatible with version 2, which is still in use by that one service which hasn't been updated in 6 months</p>
+
+                <hr/>
+
+                <b>testing :D</b>
+                <p>The most obvious positive gain from starting to divide a monolith comes when your monolith's test suite is starting to slow down</p>
+                <p>If you pull out a service whose tests take 10 minutes to run, that's 10 minutes you're stripping off of every monolith build, which is huge</p>
+                <p>You'll also probably find some ways to optimize that service's build time once it's been split out due to ownership as mentioned earlier</p>
+                <p>Those clearer boundaries, smaller code base, and increased familiarity can also aid in testing your services in isolation</p>
+
+                <b>testing D:</b>
+                <p>The downside of course, is that you're no longer testing a single process</p>
+                <p>You need to make sure that each individual service works as intended, and you also need to make sure that they can coordinate together at a higher level and behave correctly as a system</p>
+                <p>Compounding on top of that, you might have different devs working on different services concurrently, so the versions you're testing your service against might not be the version they're getting deployed with</p>
+
+            </aside>
+        </section>
+        <section>
+            <h2>testing service to service interactions</h2>
+
+            <p class="fragment fade-up" id="e2e">stand up the world</p>
+            <p class="fragment fade-up" id="mock">mock out dependencies</p>
+            <svg id="graph"></svg>
+
+            <aside class="notes">
+                <p>That brings us to the following question: How do we test service to service interactions so that we can deploy services individually without unintentionally causing breaking changes?</p>
+                <p>d3 transition is next!</p>
+
+                <b>stand up the world</b>
+                <p>the first and most obvious option is to just stand up the entire world and perform end to end tests</p>
+                <p>It's conceptually easy to grasp and nothing is going to demonstrate more clearly that a set of services work together as a system than running them together as a system</p>
+                <p>The downsides are unfortunately fairly significant</p>
+                <p>The world is big...</p>
+                <p>It can take a whole lot of time and coordination to stand up a large number of services, and if there is any initial bootstrapping or data loading that needs to happen, it can take even longer</p>
+                <p>These tests often end up slow and brittle, and it can be difficult to set up scenarios when you're treating the system as a black box</p>
+                <p>Now, I don't want to discourage them entirely as there is absolutely value in having a few larger system tests which go through the happy path of core features, but they probably shouldn't be your only means of making sure that your services are communicating correctly</p>
+
+                <b>mock out dependencies</b>
+                <p>On the opposite end of the spectrum, you can just mock out the APIs that your service depends on</p>
+                <p>Mocks are fast and relatively easy, but of course, they also have risks</p>
+                <p>When you mock out an API, what you're really testing against is what the API looked like at the moment in time that you mocked it</p>
+                <p>If a service changes over time, you need to make sure that anywhere a mock of it was used is also updated</p>
+                <p>If the service changes but your mocks don't, you won't know until you run e2e tests, or worse, in prod</p>
+                <p>Even if you do keep your mocks perfectly up to date everywhere they're used, that still might not be enough, because the version that's currently in prod was tested against the old mock, not the new one</p>
+            </aside>
+        </section>
+        <section>
+            <h2>CDC terms</h2>
+
+            <p class="fragment fade-up">provider</p>
+            <p class="fragment fade-up">consumer</p>
+            <p class="fragment fade-up">contract</p>
+            <p class="fragment fade-up">consumer driven contracts</p>
+
+            <aside class="notes">
+                <p>I'm about done with the doom and gloom for now, and I'm going to define a few terms which should hopefully be somewhat intuitive</p>
+
+                <b>provider</b>
+                <p>a service which has an API that is available for consumption</p>
+                <p>In other words, this is any service you're running which has a REST API</p>
+
+                <b>consumer</b>
+                <p>a service which makes use of a provider's api</p>
+                <p>If you're making HTTP requests to a provider, you are a consumer of that provider</p>
+
+                <b>contract</b>
+                <p>the most important concept here is the contract</p>
+                <p>A contract is a document which describes the interactions between a consumer and provider</p>
+                <p>What this contract looks like is essentially this: If I'm a consumer and I make a POST request to this specific url with these specific parameters, and a payload that looks like this, then I expect to receive a response with this status code, this content type, and a payload that looks like this</p>
+                <p>The contract is really important because it's what allows you to decouple the testing of your consumers and providers</p>
+
+                <b>consumer driven contracts</b>
+                <p>finally, CDC is a pattern where the development of the provider API is driven by the requirements of the consumer</p>
+            </aside>
+        </section>
+        <section>
+
+            <h2>Demo!</h2>
+            <p>pact contract</p>
+            <p>js consumer</p>
+            <p>spring boot provider</p>
+            <p>POST username and password to /login</p>
+            <p>401 + error message for invalid credentials</p>
+            <p>200 + object w/ token and username for valid credentials</p>
+            <p>get things working, then see how to safely evolve over time</p>
+
+            <aside class="notes">
+            </aside>
+        </section>
+
+        <section>
+            <h2>Common CDC framework features</h2>
+
+            <p class="fragment fade-up">mock server for consumer tests</p>
+            <p class="fragment fade-up">generated tests for provider</p>
+            <p class="fragment fade-up">final artifacts generated by running tests</p>
+            <p class="fragment fade-up">mechanism for managing contract files</p>
+
+            <div class="fragment fade-up">
+                <blockquote>Be conservative in what you do, be liberal in what you accept from others <small>https://en.wikipedia.org/wiki/Robustness_principle</small></blockquote>
+                <p>Postel's law</p>
+            </div>
+
+            <aside class="notes">
+
+                <b>mock server for consumer tests</b>
+                <p>your client tests should be making real http requests to a server </p>
+
+                <b>generated tests for provider</b>
+                <p>tests for the provider should be generated based off of the contract</p>`
+
+                <b>final artifacts generated by running tests</b>
+
+                <p>One of the deficits I mentioned about mocks was difficulty in keeping them up to date</p>
+                <p>This is something that most CDC frameworks avoid by having the generation of the final contract or stub be produced as a side effect of running your tests</p>
+                <p>This way you know that your contract has always been verified by at least one party</p>
+
+                <b>mechanism for managing contract files</b>
+
+                <b>Postel's law</b>
+                <p>Postel's law is something I've been trying to hint at throughout</p>
+                <p>Consumer Contracts don't dictate the exact contents of the payload, they just make assertions about what they require to be there</p>
+                You should be strict in how requests are matched, but much more lenient in validating responses</p>
+                <p>You can say that in this certain case this field needs to contain this exact value, but more often you're going to be describing the shape of the data</p>
+                <p>This field is expected to be a String, and this one is a boolean, and this one should be an object which looks like this</p>
+
+
+            </aside>
+        </section>
+
+        <section>
+            <h2>Postel's law illustration</h2>
+
+            <img src="img/mf_illustration.png">
+            <small>http://martinfowler.com/articles/microservice-testing/#testing-contract-diagram</small>
+            <aside class="notes">
+                <p>Here's an illustration which will hopefully makes the idea of a contract a little more clear</p>
+                <p>What we're looking at is a single producer which has 3 consumers</p>
+                <p>check shading visuals</p>
+                <p>The producer returns a payload which has 3  fields: id, name, and age</p>
+                <p>The first consumer is making the assertion that when it makes a request, it will receive a response that has an id field, and a name field, if age shows up, or address shows up, or any other field shows up it doesn't care, it just needs to know that ID and name are there</p>
+                <p>There's a similar story for Consumer 2</p>
+                <p>When it makes a request, it MUST receive a json payload which contains an id and age... anything else is just noise</p>
+                <p>And finally the third consumer requires that all three fields are present</p>
+                <p>At the end of the day, the provider is responsible for fulfilling the contracts of all of it's consumer, so if there was a fourth consumer that required a "nickname" field, the first three contracts would remain unchanged, and the producer would start producing a payload with 4 fields: id, name, age, and nickname</p>
+            </aside>
+        </section>
+
+        <section>
+            <h1>CDC frameworks</h1>
+            <aside class="notes">
+
+                <p>with that, I'm going to move on to some of the options available to you if you want to try out CDC</p>
+            </aside>
+        </section>
+        <section>
+            <h2>roll your own</h2>
+            <blockquote>"... we want to point out that consumer-driven contract testing is a technique and an attitude that
+                requires no special tool to implement"
+                <small>https://www.thoughtworks.com/radar/techniques/consumer-driven-contract-testing</small>
+            </blockquote>
+
+            <aside class="notes">
+                <p>first option = do it yourself</p>
+                <p>quote from thoughtworks tech radar, marked as adopt</p>
+                <p>don't need tooling to do cdc, but can be helpful</p>
+            </aside>
+        </section>
+        <section>
+
+            <h2>Pact</h2>
+            <blockquote>"We love frameworks like Pact because they make proper contract tests easier to implement in certain contexts"
+                <small>https://www.thoughtworks.com/radar/techniques/consumer-driven-contract-testing</small></blockquote>
+            <small>ruby jvm .net js go swift etc.</small>
+            <p>pact broker</p>
+            <p>messaging</p>
+            <p>multiple languages</p>
+
+            <aside class="notes">
+                <p>This was the next sentence from the thoughtworks radar</p>
+                <p>most popular implementation (as far as I can tell), tons of language support, although quality of implementations may vary language by language</p>
+                <p>pact broker</p>
+                    <ul>
+                        <li>tag versions</li>
+                        <li>mark verified</li>
+                        <li>generated documentation</li>
+                        <li>network graphs</li>
+                    </ul>
+                <p>Can vouch for JVM version, great support from maintainers, especially @uglyog Ronald Holshausen</p>
+            </aside>
+        </section>
+        <section>
+
+            <h2>Spring Cloud Contract</h2>
+            <p>first class spring support</p>
+            <p>reusable stubs</p>
+            <p>service discovery</p>
+            <p>messaging</p>
+
+            <aside class="notes">
+                <p>relatively new, but iterating quickly.</p>
+                <p>maintainer @MGrzejszczak Marcin Grzejszczak is incredibly responsive</p>
+                <p>check out spring cloud pipeline</p>
+                <p>built off of wiremock, stubs can be freely used wherever (including js)<p>
+                <p>If you're using spring cloud service discovery, it has built in support for connecting to wiremock stubs by service id</p>
+                <p>usage of stub jars instead of standalone brokers</p>
+                <p>integration with spring rest docs</p>
+                <p>incoming support for pact/raml/swagger/openAPI conversion layer</p>
+            </aside>
+        </section>
+        <section>
+
+            <a href="https://github.com/Fitzoh/testing-at-the-boundaries">https://github.com/Fitzoh/testing-at-the-boundaries</a>
+            <h4>homework</h4>
+            <p><a href="http://www.martinfowler.com/articles/consumerDrivenContracts.html">Martin Fowler CDC article</a></p>
+            <p><a href="http://martinfowler.com/articles/microservice-testing/">Martin Fowler microservices testing slides</a></p>
+            <p><a href="https://docs.pact.io/">Pact docs</a></p>
+            <p><a href="https://cloud.spring.io/spring-cloud-contract/spring-cloud-contract.html">SCC docs</a></p>
+            <p><a href="https://www.youtube.com/watch?v=sAAklvxmPmk">@MGrzejszczak SCC talk </a></p>
+            <h4>shout outs</h4>
+            <p><a href="https://github.com/marcingrzejszczak">Marcin Grzejszczak</a> (SCC maintainer)</p>
+            <p><a href="https://github.com/uglyog">Ronald Holshausen</a> (pact-jvm maintainer)</p>
+            <aside class="notes">
+
+            </aside>
+        </section>
+    </div>
+</div>
+
+<script src="lib/js/head.min.js"></script>
+<script src="js/reveal.js"></script>
+<script src="js/d3.js"></script>
+
+<script>
+    // More info https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+        history: true,
+
+        // More info https://github.com/hakimel/reveal.js#dependencies
+        dependencies: [
+            {src: 'plugin/markdown/marked.js'},
+            {src: 'plugin/markdown/markdown.js'},
+            {src: 'plugin/notes/notes.js', async: true},
+            {
+                src: 'plugin/highlight/highlight.js', async: true, callback: function () {
+                hljs.initHighlightingOnLoad();
+            }
+            },
+            {src: 'socket.io/socket.io.js', async: true},
+            {src: 'plugin/notes-server/client.js', async: true}
+        ]
+    });
+
+    var width = 800;
+    var height = 400;
+    var color = d3.schemeCategory20c;
+    var svg = d3.select("#graph")
+        .attr("width", width)
+        .attr("height", height);
+    var simulation
+
+
+    function tick(link, node) {
+        link
+            .attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
+
+        node
+            .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+    }
+
+    var clearGraph = function(){
+        simulation && simulation.stop()
+        svg.selectAll("*").remove()
+    }
+    var setupE2eGraph = function(){
+        var nodes = [{},{},{},{},{}, {}, {}, {}]
+        var links = [
+            {source: 0, target: 2},
+            {source: 1, target: 2},
+            {source: 2, target: 3},
+            {source: 3, target: 4},
+            {source: 3, target: 5},
+            {source: 3, target: 7},
+            {source: 4, target: 6},
+            {source: 5, target: 6}
+        ]
+
+
+        simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).distance(80))
+            .force("charge", d3.forceManyBody().strength(-120))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+
+
+        var link = svg.selectAll(".link")
+            .data(links)
+            .enter().append("line")
+            .attr("class", "link")
+            .attr("stroke", "white");
+
+        var node = svg.selectAll(".node")
+            .data(nodes)
+            .enter().append("circle")
+            .attr("class", "node")
+            .attr("r", 15)
+            .attr("fill", function(d){
+                return color[d.index];
+            } )
+            .text(function(d){
+                d.index
+            })
+        simulation.on("tick", function(e){
+            tick(link, node)
+        });
+
+    }
+    var setupMockGraphfunction = function(){
+        var nodes = [{},{},{},{}]
+        var links = [
+            {source: 0, target: 1},
+            {source: 0, target: 2},
+            {source: 0, target: 3},
+        ]
+
+
+        simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).distance(80))
+            .force("charge", d3.forceManyBody().strength(-120))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+
+
+        var link = svg.selectAll(".link")
+            .data(links)
+            .enter().append("line")
+            .attr("class", "link")
+            .attr("stroke", "white");
+
+        var node = svg.selectAll(".node")
+            .data(nodes)
+            .enter().append("circle")
+            .attr("class", "node")
+            .attr("r", 15)
+            .attr("fill", function(d){
+                return d.index == 0 ? "steelblue" : "white"
+            } )
+            .attr("stroke", function(d){
+                return d.index == 0 ? "none" : "red";
+            })
+            .attr("stroke-width", 5)
+        simulation.on("tick", function(e){
+            tick(link, node)
+        });
+    }
+    Reveal.addEventListener( 'fragmentshown', function( event ) {
+        console.log(event)
+        clearGraph()
+        if (event.fragment.id === "e2e"){
+            console.log("stand up the world")
+            setupE2eGraph()
+        }
+        if (event.fragment.id === "mock"){
+            console.log("mocks")
+            setupMockGraphfunction()
+        }
+    } );
+
+  </script>
+</body>
+</html>

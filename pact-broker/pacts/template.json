@@ -1,0 +1,41 @@
+{
+    "provider": {
+        "name": "__PROVIDER__"
+    },
+    "consumer": {
+        "name": "__CONSUMER__"
+    },
+    "interactions": [
+        {
+            "description": "a request to connect",
+            "request": {
+                "method": "POST",
+                "path": "/connect",
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "body": {
+                    "connector": "__CONSUMER__",
+                    "connectee": "__PROVIDER__"
+                }
+            },
+            "response": {
+                "status": 200,
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "body": {
+                    "conection": {
+                      "from" : "__CONSUMER__",
+                      "to" : "__PROVIDER__"
+                    }
+                }
+            }
+        }
+    ],
+    "metadata": {
+        "pact-specification": {
+            "version": "3.0.0"
+        }
+    }
+}

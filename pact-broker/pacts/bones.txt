@@ -1,0 +1,11 @@
+toe	foot
+foot	heel
+heel	ankle
+ankle	shin
+shin	knee
+knee	thigh
+thigh	hip
+hip	back
+back	shoulder
+shoulder	neck
+nech	head
