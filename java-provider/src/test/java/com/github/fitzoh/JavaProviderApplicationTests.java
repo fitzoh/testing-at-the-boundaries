@@ -2,6 +2,7 @@ package com.github.fitzoh;
 
 import au.com.dius.pact.provider.junit.PactRunner;
 import au.com.dius.pact.provider.junit.Provider;
+import au.com.dius.pact.provider.junit.State;
 import au.com.dius.pact.provider.junit.loader.PactFolder;
 import au.com.dius.pact.provider.junit.target.HttpTarget;
 import au.com.dius.pact.provider.junit.target.TestTarget;
@@ -9,6 +10,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestContextManager;
 
@@ -41,4 +43,17 @@ public class JavaProviderApplicationTests {
         testContextManager.prepareTestInstance(this);
     }
 
+    @Autowired
+    UserRepository userRepository;
+
+    @State("a user with username 'username' doesn't exists")
+    public void ensureUserDoesNotExists() {
+        userRepository.remove("username");
+    }
+
+    @State("a user with username 'username' and password 'password' exists")
+    public void ensureUserExists(){
+        User user = new User(1, "username", "password", "fitz");
+        userRepository.put(user.getUsername(), user);
+    }
 }

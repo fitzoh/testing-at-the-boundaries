@@ -79,17 +79,19 @@ describe("LoginService", function () {
             .willRespondWith(200, {
                 "Content-Type": "application/json"
             }, {
-                "id": 5,
-                "username": "username",
-                "token": "some-long-token-string"
+                "token": Pact.Match.term({generate: "some-long-token-string", matcher : ".*-.*-.*-.*"}),
+                "user": Pact.Match.somethingLike({
+                    "id": 5,
+                    "username": username
+                })
             });
 
         provider.run(done, function (runComplete) {
             loginService.login(username, password)
                 .then(function (response) {
                     expect(response.status).toEqual(200);
-                    expect(response.id).toEqual(5)
-                    expect(response.username).toEqual("username");
+                    expect(response.user.id).toEqual(5)
+                    expect(response.user.username).toEqual("username");
                     expect(response.token).toEqual("some-long-token-string");
                     runComplete();
                 });
