@@ -1,6 +1,9 @@
 #TESTING AT THE BOUNDARIES
 ##Using Consumer Driven Contracts to keep your microservices in sync
 
+#### Note
+This is the state of the code at the end of the demo.
+For the initial state, go [here](https://github.com/Fitzoh/testing-at-the-boundaries/tree/codemash-2017-demo-start)
 
 #### References
 [Pact docs](https://docs.pact.io/)
