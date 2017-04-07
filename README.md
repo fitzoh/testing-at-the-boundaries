@@ -27,6 +27,6 @@ twitter:[@RHolshausen](https://twitter.com/RHolshausen)
 
 ####Slides
 
-Slides are located in the docs folder, and viewable [here](https://fitzoh.github.io/testing-at-the-boundaries-slides), via github pages.
+Slides are located in the docs folder, and viewable [here](https://fitzoh.github.io/testing-at-the-boundaries), via github pages.
 
 Slides are forked from [reveal.js](https://github.com/hakimel/reveal.js/), which is MIT licensed and Copyright (C) 2016 Hakim El Hattab, http://hakim.se
